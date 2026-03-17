@@ -52,9 +52,10 @@ export default function HomePage() {
   }, [])
 
   const stats = [
-    { value: liveStats ? `${liveStats.users}` : '...', label: 'Registered users' },
-    { value: liveStats ? `${liveStats.responses}` : '...', label: 'Survey responses' },
-    { value: liveStats ? `${liveStats.listings}` : '...', label: 'Housing lists' },
+    { value: liveStats ? `${liveStats.verifiedStudents}` : '...', label: 'Verified Students' },
+    { value: liveStats ? `${liveStats.surveys}` : '...', label: 'Survey Responses' },
+    { value: liveStats ? `${liveStats.matches}` : '...', label: 'Matches Found' },
+    { value: liveStats && liveStats.totalExpensesTracked ? `₹${liveStats.totalExpensesTracked.toLocaleString()}` : '...', label: 'Expenses Tracked' },
   ]
 
   return (
@@ -72,6 +73,7 @@ export default function HomePage() {
             <Link href="#features" className="nav-link">Features</Link>
             <Link href="#how-it-works" className="nav-link">How it works</Link>
             <Link href="/rentals" className="nav-link">Browse rentals</Link>
+            <Link href="/demo" className="nav-link font-medium text-forest-800">Demo</Link>
           </div>
           <div className="flex items-center gap-3">
             {session ? (
@@ -112,8 +114,8 @@ export default function HomePage() {
               </h1>
 
               <p className="text-forest-600 text-lg md:text-xl leading-relaxed max-w-xl mb-10">
-                Find your ideal roommate, split rent without the spreadsheet drama,
-                scan your lease for red flags — and rent everything else from RentIts.
+                Join students across India finding their ideal roommates, splitting rent without the spreadsheet drama,
+                and scanning leases for red flags.
               </p>
 
               <div className="flex flex-wrap items-center gap-4">
