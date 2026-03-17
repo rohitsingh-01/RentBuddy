@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/components/layout/SupabaseAuthProvider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/components/layout/SupabaseAuthProvider'
 import { ArrowRight, ArrowLeft, CheckCircle2, Sparkles, Users, Calculator, FileSearch, Package } from 'lucide-react'
 import { toast } from 'sonner'
 
