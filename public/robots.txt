@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /demo
+Allow: /pitch
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /match
+Disallow: /splits
+Disallow: /lease
+Disallow: /rentals
+Disallow: /profile
+Disallow: /notifications
+Disallow: /onboarding
+
+Sitemap: https://rentbuddy.netlify.app/sitemap.xml

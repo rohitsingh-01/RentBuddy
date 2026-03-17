@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: #fdfcf8;
+  color: #11382d;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: #b4dbcc;
+  color: #11382d;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-forest-800 text-cream-100 px-6 py-3 rounded-full font-medium text-sm tracking-wide transition-all duration-200 hover:bg-forest-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 border border-forest-800/20 text-forest-800 px-6 py-3 rounded-full font-medium text-sm tracking-wide transition-all duration-200 hover:bg-forest-50 hover:border-forest-800/40;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 text-forest-700 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 hover:bg-forest-50;
+  }
+
+  .card {
+    @apply bg-white border border-forest-100 rounded-2xl p-6 shadow-sm;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-forest-200 bg-white text-forest-900 placeholder-forest-400 text-sm focus:outline-none focus:ring-2 focus:ring-forest-400/40 focus:border-forest-400 transition-all duration-150;
+  }
+
+  .label {
+    @apply block text-xs font-medium text-forest-600 mb-1.5 tracking-wide;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-green {
+    @apply badge bg-forest-100 text-forest-700;
+  }
+
+  .badge-coral {
+    @apply badge bg-coral-400/10 text-coral-600;
+  }
+
+  .badge-cream {
+    @apply badge bg-cream-100 text-cream-800;
+  }
+
+  .section-heading {
+    @apply font-display text-3xl md:text-4xl text-forest-900 leading-tight;
+  }
+
+  .nav-link {
+    @apply text-sm font-medium text-forest-600 hover:text-forest-900 transition-colors duration-150;
+  }
+}
+
+@layer utilities {
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+  .animate-delay-500 { animation-delay: 500ms; }
+  .opacity-0-init { opacity: 0; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f0f7f4; }
+::-webkit-scrollbar-thumb { background: #82c0a8; border-radius: 3px; }

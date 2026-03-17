@@ -1,0 +1,50 @@
+{
+  "name": "RentBuddy — Smart Housing for Students",
+  "short_name": "RentBuddy",
+  "description": "Find roommates, split rent, scan leases, and rent everything you need for student life.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#fdfcf8",
+  "theme_color": "#144336",
+  "orientation": "portrait-primary",
+  "categories": ["utilities", "lifestyle", "education"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "RentBuddy Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find a roommate",
+      "url": "/match",
+      "description": "AI-powered roommate matching"
+    },
+    {
+      "name": "Rent splits",
+      "url": "/splits",
+      "description": "Track shared expenses"
+    },
+    {
+      "name": "Scan lease",
+      "url": "/lease",
+      "description": "AI lease red-flag scanner"
+    }
+  ]
+}
