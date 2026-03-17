@@ -21,9 +21,9 @@ interface Task {
 const TASKS: Task[] = [
   // Setup
   { id: 'mongodb',    critical: true,  category: 'Setup',     label: 'MongoDB Atlas cluster running',             detail: 'Free M0 tier at cloud.mongodb.com. Get the connection string for MONGODB_URI.',           link: 'https://cloud.mongodb.com', linkLabel: 'Open Atlas' },
-  { id: 'env',        critical: true,  category: 'Setup',     label: '.env.local filled with real values',        detail: 'At minimum: MONGODB_URI, NEXTAUTH_SECRET, NEXTAUTH_URL.',                                  link: null },
-  { id: 'seed',       critical: true,  category: 'Setup',     label: 'npm run seed executed against production DB',detail: 'Creates demo user, rent split, notifications, and 10 survey responses.',                  link: null },
-  { id: 'deploy',     critical: true,  category: 'Setup',     label: 'Deployed to Netlify with production URL',   detail: 'Connect GitHub repo → set env vars → auto deploys.',                                      link: 'https://netlify.com', linkLabel: 'Open Netlify' },
+  { id: 'env',        critical: true,  category: 'Setup',     label: '.env.local filled with real values',        detail: 'At minimum: MONGODB_URI, NEXTAUTH_SECRET, NEXTAUTH_URL.' },
+  { id: 'seed',       critical: true,  category: 'Setup',     label: 'npm run seed executed against production DB',detail: 'Creates demo user, rent split, notifications, and 10 survey responses.' },
+  { id: 'deploy',     critical: true,  category: 'Setup',     label: 'Deployed to Vercel with production URL',    detail: 'Connect GitHub repo → set env vars → auto deploys.',                                      link: 'https://vercel.com', linkLabel: 'Open Vercel' },
   // APIs
   { id: 'together',   critical: false, category: 'APIs',      label: 'Together.ai key added (Llama 3 AI)',        detail: 'Free credits available at api.together.xyz — enables roommate summaries + lease scanning.', link: 'https://api.together.xyz', linkLabel: 'Get key' },
   { id: 'twilio',     critical: false, category: 'APIs',      label: 'Twilio credentials added (SMS reminders)',  detail: 'Account SID, Auth Token, phone number from console.twilio.com.',                          link: 'https://console.twilio.com', linkLabel: 'Get keys' },
@@ -35,17 +35,17 @@ const TASKS: Task[] = [
   { id: 'quotes',     critical: false, category: 'Research',  label: 'At least 3 student quotes in survey',       detail: 'Real quotes in the "any other thoughts" field make the research section compelling.',       link: '/research', linkLabel: 'View results' },
   // RentIts bonus
   { id: 'rentits10',  critical: true,  category: 'Bonus',     label: '10+ RentIts signups (= 400 bonus pts)',     detail: 'Share /rentals page. Every verified signup adds +40 points. This is your score multiplier.', link: '/rentals', linkLabel: 'Open rentals' },
-  { id: 'bonusclaim', critical: false, category: 'Bonus',     label: 'RentIts signups verified on leaderboard',   detail: 'Confirm with the RentIts team that your signups are verified and counted.',                  link: null },
+  { id: 'bonusclaim', critical: false, category: 'Bonus',     label: 'RentIts signups verified on leaderboard',   detail: 'Confirm with the RentIts team that your signups are verified and counted.' },
   // Submission
   { id: 'ppt',        critical: true,  category: 'Submission',label: 'Devfolio submission PPT filled in',         detail: 'Download from hackrent.devfolio.co. Use /pitch for content — it has live stats.',            link: 'https://docs.google.com/presentation/d/1WN_yhAT6tNMFobqNSbrYmLoH0x4_mZ13nt_fAFuIUxg/edit', linkLabel: 'Download template' },
-  { id: 'video',      critical: true,  category: 'Submission',label: '3-minute demo video recorded',              detail: 'Show: roommate match → lease scan → rent split → RentIts signup → map. Keep it live, no slides.',  link: null },
+  { id: 'video',      critical: true,  category: 'Submission',label: '3-minute demo video recorded',              detail: 'Show: roommate match → lease scan → rent split → RentIts signup → map. Keep it live, no slides.' },
   { id: 'demodata',   critical: true,  category: 'Submission',label: 'Demo account has seeded data (not empty)',  detail: 'Run npm run seed. Judges should see a populated dashboard, not an empty state.',               link: '/dashboard', linkLabel: 'Check dashboard' },
   { id: 'devfolio',   critical: true,  category: 'Submission',label: 'Submitted on Devfolio by March 29',         detail: 'Include: live URL, GitHub repo, video, PPT, and description.',                               link: 'https://hackrent.devfolio.co', linkLabel: 'Open Devfolio' },
   // Polish
-  { id: 'mobile',     critical: false, category: 'Polish',    label: 'Tested on mobile (judges use phones)',      detail: 'Check dashboard, match, and splits pages on a real phone or mobile viewport.',               link: null },
+  { id: 'mobile',     critical: false, category: 'Polish',    label: 'Tested on mobile (judges use phones)',      detail: 'Check dashboard, match, and splits pages on a real phone or mobile viewport.' },
   { id: 'pitchpage',  critical: false, category: 'Polish',    label: '/pitch page looks good with live data',     detail: 'Visit /pitch — confirm real stats show. Share this URL with judges.',                       link: '/pitch', linkLabel: 'View pitch' },
   { id: 'demolog',    critical: false, category: 'Polish',    label: '/demo page live and accessible',            detail: 'No login required. Share this URL in your Devfolio description.',                          link: '/demo', linkLabel: 'View demo' },
-  { id: 'errorfree',  critical: false, category: 'Polish',    label: 'No console errors on main pages',           detail: 'Check browser console on dashboard, match, splits, and lease pages.',                      link: null },
+  { id: 'errorfree',  critical: false, category: 'Polish',    label: 'No console errors on main pages',           detail: 'Check browser console on dashboard, match, splits, and lease pages.' },
 ]
 
 const CATEGORIES = ['Setup', 'APIs', 'Research', 'Bonus', 'Submission', 'Polish']
@@ -83,7 +83,7 @@ export default function ChecklistPage() {
     setDone((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...next])) } catch {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))) } catch {}
       return next
     })
   }

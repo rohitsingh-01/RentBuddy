@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import connectDB from '@/lib/mongodb'
-import { User } from '@/models/User'
 
 export async function GET() {
   try {
@@ -11,15 +9,48 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await connectDB()
-    const mongoUser = await User.findOne({ email: user.email }).lean()
+    let { data: profile, error: dbError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle()
 
-    if (!mongoUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!profile) {
+      // Auto-provision profile from auth user to avoid bugs
+      const { data: created, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          name: user.user_metadata?.full_name || 'User',
+          email: user.email,
+        })
+        .select()
+        .single()
+      
+      if (createError) {
+        console.error('Provisioning error:', createError)
+        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
+      }
+      profile = created
     }
 
-    return NextResponse.json({ user: mongoUser })
+    // Wrap into old schema format to prevent breaking frontend
+    const responseUser = {
+      ...profile,
+      profile: {
+        bio: profile.bio,
+        location: profile.location,
+        course: profile.course,
+        year: profile.year,
+        moveInDate: profile.move_in_date,
+        budget: profile.budget,
+        lifestyle: profile.lifestyle
+      }
+    }
+
+    return NextResponse.json({ user: responseUser })
   } catch (error) {
+    console.error('Profile GET error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
@@ -33,30 +64,47 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json()
-    await connectDB()
-
     const allowedFields: Record<string, any> = {}
 
     if (body.name) allowedFields.name = body.name
-    if (body.phoneNumber !== undefined) allowedFields.phoneNumber = body.phoneNumber
+    if (body.phoneNumber !== undefined) allowedFields.phone_number = body.phoneNumber
     if (body.profile) {
       const p = body.profile
-      if (p.bio !== undefined) allowedFields['profile.bio'] = p.bio
-      if (p.location !== undefined) allowedFields['profile.location'] = p.location
-      if (p.course !== undefined) allowedFields['profile.course'] = p.course
-      if (p.year !== undefined) allowedFields['profile.year'] = p.year ? parseInt(p.year) : undefined
-      if (p.moveInDate !== undefined) allowedFields['profile.moveInDate'] = p.moveInDate ? new Date(p.moveInDate) : undefined
-      if (p.budget) allowedFields['profile.budget'] = p.budget
-      if (p.lifestyle) allowedFields['profile.lifestyle'] = p.lifestyle
+      if (p.bio !== undefined) allowedFields.bio = p.bio
+      if (p.location !== undefined) allowedFields.location = p.location
+      if (p.course !== undefined) allowedFields.course = p.course
+      if (p.year !== undefined) allowedFields.year = p.year ? parseInt(p.year) : undefined
+      if (p.moveInDate !== undefined) allowedFields.move_in_date = p.moveInDate ? new Date(p.moveInDate) : undefined
+      if (p.budget) allowedFields.budget = p.budget
+      if (p.lifestyle) allowedFields.lifestyle = p.lifestyle
     }
 
-    const updated = await User.findOneAndUpdate(
-      { email: user.email },
-      { $set: allowedFields },
-      { new: true, lean: true }
-    )
+    const { data: updated, error: patchError } = await supabase
+      .from('profiles')
+      .update(allowedFields)
+      .eq('email', user.email)
+      .select()
+      .single()
 
-    return NextResponse.json({ user: updated, success: true })
+    if (patchError) {
+      console.error('Profile update patch error:', patchError)
+      return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+    }
+
+    const responseUser = {
+      ...updated,
+      profile: {
+        bio: updated.bio,
+        location: updated.location,
+        course: updated.course,
+        year: updated.year,
+        moveInDate: updated.move_in_date,
+        budget: updated.budget,
+        lifestyle: updated.lifestyle
+      }
+    }
+
+    return NextResponse.json({ user: responseUser, success: true })
   } catch (error) {
     console.error('Profile update error:', error)
     return NextResponse.json({ error: 'Update failed' }, { status: 500 })

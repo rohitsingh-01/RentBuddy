@@ -1,38 +1,49 @@
 import { NextResponse } from 'next/server'
-import connectDB from '@/lib/mongodb'
-import { User } from '@/models/User'
-import { RentSplit } from '@/models/RentSplit'
-import { Match } from '@/models/Match'
-import { SurveyResponse } from '@/models/SurveyResponse'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    await connectDB()
+    const supabase = createClient()
 
-    const [users, splits, matches, surveys] = await Promise.all([
-      User.countDocuments(),
-      RentSplit.countDocuments(),
-      Match.countDocuments({ status: 'accepted' }),
-      SurveyResponse.countDocuments(),
+    const [u, sp, mt, sur] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('rent_splits').select('*', { count: 'exact', head: true }),
+      supabase.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'accepted'),
+      supabase.from('survey_responses').select('*', { count: 'exact', head: true })
     ])
 
-    const rentItsSignups = await User.countDocuments({ rentItsSignedUp: true })
-    const verifiedStudents = await User.countDocuments({ isVerified: true })
+    const { count: users } = u
+    const { count: splits } = sp
+    const { count: matches } = mt
+    const { count: surveys } = sur
 
-    const splitAgg = await RentSplit.aggregate([
-      { $group: { _id: null, total: { $sum: '$totalExpenses' } } },
-    ])
-    const totalExpensesTracked = splitAgg[0]?.total || 0
+    const { count: rentItsSignups } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('rent_its_signed_up', true)
+
+    const { count: verifiedStudents } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_verified', true)
+
+    const { data: splitExpenses } = await supabase
+      .from('rent_splits')
+      .select('total_expenses')
+
+    const totalExpensesTracked = splitExpenses 
+      ? splitExpenses.reduce((sum: number, row: any) => sum + (row.total_expenses || 0), 0) 
+      : 0
 
     return NextResponse.json({
-      users,
-      verifiedStudents,
-      splits,
-      matches,
-      surveys,
-      rentItsSignups,
+      users: users || 0,
+      verifiedStudents: verifiedStudents || 0,
+      splits: splits || 0,
+      matches: matches || 0,
+      surveys: surveys || 0,
+      rentItsSignups: rentItsSignups || 0,
       totalExpensesTracked,
-      bonusPoints: rentItsSignups * 40,
+      bonusPoints: (rentItsSignups || 0) * 40,
     })
   } catch (err) {
     console.error('Stats error:', err)

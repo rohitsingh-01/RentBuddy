@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import connectDB from '@/lib/mongodb'
-import { User } from '@/models/User'
-import { Match } from '@/models/Match'
 
 // Compatibility scoring algorithm
 function computeCompatibility(a: any, b: any): number {
@@ -10,30 +7,19 @@ function computeCompatibility(a: any, b: any): number {
   const la = a.profile?.lifestyle || {}
   const lb = b.profile?.lifestyle || {}
 
-  // Sleep schedule match (+15 if same, +8 if adjacent)
   if (la.sleepTime === lb.sleepTime) score += 15
-  else if (
-    (la.sleepTime === 'flexible') ||
-    (lb.sleepTime === 'flexible')
-  ) score += 8
+  else if ((la.sleepTime === 'flexible') || (lb.sleepTime === 'flexible')) score += 8
 
-  // Cleanliness (+12 exact, -5 if very different)
   if (la.cleanliness === lb.cleanliness) score += 12
   else if (
     (la.cleanliness === 'very-clean' && lb.cleanliness === 'relaxed') ||
     (la.cleanliness === 'relaxed' && lb.cleanliness === 'very-clean')
   ) score -= 5
 
-  // Noise level (+10 if same)
   if (la.noise === lb.noise) score += 10
-
-  // Guest frequency (+8 if same)
   if (la.guests === lb.guests) score += 8
-
-  // Smoking compatibility
   if (la.smoking === lb.smoking) score += 5
 
-  // Budget overlap
   const aMin = a.profile?.budget?.min || 0
   const aMax = a.profile?.budget?.max || 50000
   const bMin = b.profile?.budget?.min || 0
@@ -57,18 +43,12 @@ async function getAISummary(userA: any, userB: any, score: number): Promise<{ su
   try {
     const response = await fetch('https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'meta-llama/Llama-3-70b-chat-hf',
         max_tokens: 300,
         messages: [
-          {
-            role: 'system',
-            content: 'You are a friendly roommate matching assistant. Be concise, warm, and specific. Return JSON only.',
-          },
+          { role: 'system', content: 'You are a friendly roommate matching assistant. Be concise, warm, and specific. Return JSON only.' },
           {
             role: 'user',
             content: `Generate a compatibility summary and conversation starter for these two students.
@@ -103,76 +83,103 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    await connectDB()
 
-    const currentUser = await User.findOne({ email: user.email })
+    let { data: currentUser, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle()
+
     if (!currentUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      const { data: created } = await supabase
+        .from('profiles')
+        .insert({ id: user.id, name: user.user_metadata?.full_name || 'User', email: user.email })
+        .select().single()
+      currentUser = created
     }
 
-    // Save preferences
-    await User.findByIdAndUpdate(currentUser._id, {
-      'profile.budget': body.budget || currentUser.profile?.budget,
-      'profile.lifestyle': body.lifestyle || {},
-      'profile.location': body.location,
-      'profile.course': body.course,
-      'profile.year': body.year ? parseInt(body.year) : undefined,
-      'profile.bio': body.bio,
-    })
+    // Save preferences update
+    const allowedFields: Record<string, any> = {}
+    if (body.budget) allowedFields.budget = body.budget
+    if (body.lifestyle) allowedFields.lifestyle = body.lifestyle
+    if (body.location !== undefined) allowedFields.location = body.location
+    if (body.course !== undefined) allowedFields.course = body.course
+    if (body.year !== undefined) allowedFields.year = body.year ? parseInt(body.year) : undefined
+    if (body.bio !== undefined) allowedFields.bio = body.bio
 
-    // Find potential matches (exclude self, limit to 20 candidates)
-    const candidates = await User.find({
-      _id: { $ne: currentUser._id },
-      isVerified: true,
-    }).limit(20)
+    await supabase
+      .from('profiles')
+      .update(allowedFields)
+      .eq('id', currentUser.id)
+
+    // Setup nested profile shape for compatibility scoring backward compatibility
+    const currentWithProfile = {
+      ...currentUser,
+      profile: { budget: body.budget || currentUser.budget, lifestyle: body.lifestyle || currentUser.lifestyle }
+    }
+
+    // Find candidates
+    const { data: candidates } = await supabase
+      .from('profiles')
+      .select('*')
+      .neq('id', currentUser.id)
+      .limit(20)
+
+    if (!candidates) return NextResponse.json({ matches: [] })
+
+    // Map candidates to have nested `.profile` to reuse algoritm
+    const formattedCandidates = candidates.map(c => ({
+      ...c,
+      profile: { budget: c.budget, lifestyle: c.lifestyle, course: c.course, year: c.year }
+    }))
 
     // Score and sort
-    const scored = candidates
+    const scored = formattedCandidates
       .map((candidate) => ({
         candidate,
-        score: computeCompatibility(currentUser, candidate),
+        score: computeCompatibility(currentWithProfile, candidate),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
 
-    // Generate AI summaries for top 3
     const matches = await Promise.all(
       scored.slice(0, 3).map(async ({ candidate, score }) => {
-        const aiResult = await getAISummary(currentUser, candidate, score)
+        const aiResult = await getAISummary(currentWithProfile, candidate, score)
+        
         return {
-          id: candidate._id,
+          id: candidate.id,
           name: candidate.name,
-          course: candidate.profile?.course,
-          year: candidate.profile?.year,
-          university: candidate.universityName,
+          course: candidate.course,
+          year: candidate.year,
+          university: candidate.university_name,
           score,
           summary: aiResult.summary,
           conversationStarter: aiResult.starter,
           tags: [
-            candidate.profile?.lifestyle?.sleepTime,
-            candidate.profile?.lifestyle?.cleanliness,
-            candidate.profile?.lifestyle?.noise,
-            candidate.profile?.budget?.max
-              ? `₹${candidate.profile.budget.min?.toLocaleString()}–${candidate.profile.budget.max?.toLocaleString()}`
-              : null,
-          ].filter(Boolean),
+            candidate.lifestyle?.sleepTime,
+            candidate.lifestyle?.cleanliness,
+            candidate.lifestyle?.noise,
+            candidate.budget?.max ? `₹${candidate.budget.min?.toLocaleString()}–${candidate.budget.max?.toLocaleString()}` : null
+          ].filter(Boolean)
         }
       })
     )
 
     // Save match records
     for (const match of scored.slice(0, 3)) {
-      const exists = await Match.findOne({
-        users: { $all: [currentUser._id, match.candidate._id] },
-      })
-      if (!exists) {
-        await Match.create({
-          users: [currentUser._id, match.candidate._id],
-          compatibilityScore: match.score,
-          aiSummary: '',
-          initiatedBy: currentUser._id,
-        })
-      }
+      const u1 = [currentUser.id, match.candidate.id].sort()[0]
+      const u2 = [currentUser.id, match.candidate.id].sort()[1]
+
+      await supabase
+        .from('matches')
+        .upsert({
+          user_1: u1,
+          user_2: u2,
+          compatibility_score: match.score,
+          ai_summary: '',
+          initiated_by: currentUser.id,
+          status: 'pending'
+        }, { onConflict: 'user_1, user_2' })
     }
 
     return NextResponse.json({ matches })

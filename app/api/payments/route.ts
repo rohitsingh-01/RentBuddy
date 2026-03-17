@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import connectDB from '@/lib/mongodb'
-import { RentSplit } from '@/models/RentSplit'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    const supabase = createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { splitId, memberId, amount, description } = await req.json()
-
     const apiKey = process.env.COINBASE_COMMERCE_API_KEY
 
     // Dev/demo mode — return a simulated charge
@@ -31,8 +28,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    await connectDB()
-    const split = await RentSplit.findById(splitId)
+    const { data: split } = await supabase
+      .from('rent_splits')
+      .select('name')
+      .eq('id', splitId)
+      .single()
+
     if (!split) return NextResponse.json({ error: 'Split not found' }, { status: 404 })
 
     // Create Coinbase Commerce charge
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         metadata: {
           splitId,
           memberId,
-          payerEmail: session.user.email,
+          payerEmail: user.email,
         },
         redirect_url: `${process.env.NEXTAUTH_URL}/splits?paid=true`,
         cancel_url: `${process.env.NEXTAUTH_URL}/splits`,

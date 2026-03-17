@@ -70,6 +70,7 @@ export default function MapPage() {
     async function initMap() {
       try {
         const mapboxgl = (await import('mapbox-gl')).default
+        // @ts-ignore
         await import('mapbox-gl/dist/mapbox-gl.css')
 
         mapboxgl.accessToken = token!

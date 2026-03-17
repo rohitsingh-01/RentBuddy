@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import connectDB from '@/lib/mongodb'
-import { RentSplit } from '@/models/RentSplit'
-import { User } from '@/models/User'
-import mongoose from 'mongoose'
 
 // GET /api/splits/[id]
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
@@ -12,9 +8,17 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await connectDB()
-    const split = await RentSplit.findById(params.id).lean()
-    if (!split) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const { data: split, error: splitError } = await supabase
+      .from('rent_splits')
+      .select(`
+        *,
+        members:split_members(*),
+        expenses:split_expenses(*)
+      `)
+      .eq('id', params.id)
+      .maybeSingle()
+
+    if (!split || splitError) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     return NextResponse.json({ split })
   } catch {
@@ -30,52 +34,85 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (error || !user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    await connectDB()
 
-    const split = await RentSplit.findById(params.id)
-    if (!split) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    // 1. Fetch related tables
+    const { data: split } = await supabase.from('rent_splits').select('*').eq('id', params.id).single()
+    const { data: members } = await supabase.from('split_members').select('*').eq('split_id', params.id)
+    const { data: expenses } = await supabase.from('split_expenses').select('*').eq('split_id', params.id)
 
-    // Add expense
+    if (!split || !members || !expenses) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // Recalculate helper
+    const updateBalancesAndTotal = async (currentExpenses: any[], currentMembers: any[]) => {
+      const totalExpenses = currentExpenses.reduce((s: number, e: any) => s + e.amount, 0)
+      const perPerson = currentMembers.length > 0 ? totalExpenses / currentMembers.length : 0
+
+      // Update members in memory
+      const updatedMembers = currentMembers.map((m: any) => {
+        const paid = currentExpenses
+          .filter((e: any) => e.paid_by === m.user_id)
+          .reduce((s: number, e: any) => s + e.amount, 0)
+        return { ...m, balance: paid - perPerson }
+      })
+
+      // Update Database
+      await supabase.from('rent_splits').update({ total_expenses: totalExpenses }).eq('id', params.id)
+      for (const m of updatedMembers) {
+         await supabase.from('split_members').update({ balance: m.balance }).eq('id', m.id)
+      }
+      return { totalExpenses, updatedMembers }
+    }
+
+    // A. Add expense
     if (body.action === 'add_expense') {
-      const exp = {
-        _id: new mongoose.Types.ObjectId(),
+      const expInsert = {
+        split_id: params.id,
         title: body.title,
         amount: Number(body.amount),
-        paidBy: body.paidBy,
-        splitBetween: body.splitBetween || split.members.map((m: any) => m.user),
-        date: new Date(body.date || Date.now()),
+        paid_by: body.paidBy,
+        split_between: body.splitBetween || members.map((m: any) => m.user_id),
+        date: body.date ? new Date(body.date) : new Date(),
         category: body.category || 'other',
       }
-      split.expenses.push(exp as any)
+      const { data: insertedExp } = await supabase.from('split_expenses').insert(expInsert).select().single()
+      const newExpenses = [...expenses, insertedExp]
+      const { totalExpenses, updatedMembers } = await updateBalancesAndTotal(newExpenses, members)
 
-      // Recalculate balances
-      recalculateBalances(split)
-      split.totalExpenses = split.expenses.reduce((s: number, e: any) => s + e.amount, 0)
-      await split.save()
-      return NextResponse.json({ split })
+      const responseSplit = { ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: newExpenses }
+      return NextResponse.json({ split: responseSplit })
     }
 
-    // Remove expense
+    // B. Remove expense
     if (body.action === 'remove_expense') {
-      split.expenses = split.expenses.filter((e: any) => e._id.toString() !== body.expenseId)
-      recalculateBalances(split)
-      split.totalExpenses = split.expenses.reduce((s: number, e: any) => s + e.amount, 0)
-      await split.save()
-      return NextResponse.json({ split })
+      await supabase.from('split_expenses').delete().eq('id', body.expenseId)
+      const newExpenses = expenses.filter((e: any) => e.id !== body.expenseId)
+      const { totalExpenses, updatedMembers } = await updateBalancesAndTotal(newExpenses, members)
+
+      const responseSplit = { ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: newExpenses }
+      return NextResponse.json({ split: responseSplit })
     }
 
-    // Add member
+    // C. Add member
     if (body.action === 'add_member') {
-      const memberUser = await User.findOne({ email: body.email })
-      split.members.push({
-        user: memberUser?._id || new mongoose.Types.ObjectId(),
-        name: body.name,
-        email: body.email,
-        balance: 0,
-      })
-      recalculateBalances(split)
-      await split.save()
-      return NextResponse.json({ split })
+      const { data: memberProfile } = await supabase.from('profiles').select('id').eq('email', body.email).maybeSingle()
+      
+      const { data: insertedMember } = await supabase
+        .from('split_members')
+        .insert({
+          split_id: params.id,
+          user_id: memberProfile ? memberProfile.id : null, 
+          name: body.name,
+          email: body.email,
+          balance: 0
+        })
+        .select()
+        .single()
+
+      const newMembers = [...members, insertedMember]
+      const { totalExpenses, updatedMembers } = await updateBalancesAndTotal(expenses, newMembers)
+
+      const responseSplit = { ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: expenses }
+      return NextResponse.json({ split: responseSplit })
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
@@ -92,21 +129,9 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await connectDB()
-    await RentSplit.findByIdAndDelete(params.id)
+    await supabase.from('rent_splits').delete().eq('id', params.id)
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
   }
-}
-
-function recalculateBalances(split: any) {
-  const perPerson = split.totalExpenses / split.members.length
-
-  split.members = split.members.map((m: any) => {
-    const paid = split.expenses
-      .filter((e: any) => e.paidBy?.toString() === m.user?.toString())
-      .reduce((s: number, e: any) => s + e.amount, 0)
-    return { ...m.toObject(), balance: paid - perPerson }
-  })
 }

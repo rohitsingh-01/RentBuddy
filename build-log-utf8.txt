@@ -1,0 +1,49 @@
+﻿
+> rentbuddy@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+node.exe : Failed to compile.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile 
+   .:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./models/User.ts:65:5
+Type error: Object literal may only specify known properties, 
+and 'onboardingComplete' does not exist in type '{ id?: 
+SchemaDefinitionProperty<any, IUser, Document<unknown, {}, 
+FlatRecord<IUser>, {}, DefaultSchemaOptions> & 
+FlatRecord<IUser> & Required<...> & { ...; }> | undefined; ... 
+15 more ...; updatedAt?: SchemaDefinitionProperty<...> | 
+undefined; }'.
+
+[0m [90m 63 |[39m     rentItsSignedUp[33m:[39m { 
+type[33m:[39m [33mBoolean[39m[33m,[39m 
+[36mdefault[39m[33m:[39m [36mfalse[39m }[33m,[39m[0m
+[0m [90m 64 |[39m     rentItsUserId[33m:[39m 
+[33mString[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 65 |[39m     
+onboardingComplete[33m:[39m { type[33m:[39m 
+[33mBoolean[39m[33m,[39m [36mdefault[39m[33m:[39m 
+[36mfalse[39m }[33m,[39m[0m
+[0m [90m    |[39m     [31m[1m^[22m[39m[0m
+[0m [90m 66 |[39m     phoneNumber[33m:[39m 
+[33mString[39m[33m,[39m[0m
+[0m [90m 67 |[39m     phoneVerified[33m:[39m { 
+type[33m:[39m [33mBoolean[39m[33m,[39m 
+[36mdefault[39m[33m:[39m [36mfalse[39m }[33m,[39m[0m
+[0m [90m 68 |[39m     matches[33m:[39m [{ type[33m:[39m 
+[33mSchema[39m[33m.[39m[33mTypes[39m[33m.[39m[33mObjec
+tId[39m[33m,[39m ref[33m:[39m [32m'Match'[39m 
+}][33m,[39m[0m

@@ -63,7 +63,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'rentbuddy-store',
-      partialise: (state) => ({
+      partialize: (state) => ({
         activeSplitId: state.activeSplitId,
         profileComplete: state.profileComplete,
       }),

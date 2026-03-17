@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import connectDB from '@/lib/mongodb'
-import { RentSplit } from '@/models/RentSplit'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text()
     const signature = req.headers.get('x-cc-webhook-signature') || ''
     const webhookSecret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET
+
+    const supabase = createClient()
 
     // Verify signature
     if (webhookSecret) {
@@ -27,13 +28,18 @@ export async function POST(req: NextRequest) {
     if (type === 'charge:confirmed' || type === 'charge:resolved') {
       const { splitId, memberId } = data.metadata || {}
       if (splitId && memberId) {
-        await connectDB()
         // Mark member balance as settled
-        await RentSplit.findOneAndUpdate(
-          { _id: splitId, 'members.user': memberId },
-          { $set: { 'members.$.balance': 0 } }
-        )
-        console.log(`Payment confirmed: split=${splitId} member=${memberId}`)
+        const { error: updateError } = await supabase
+          .from('split_members')
+          .update({ balance: 0 })
+          .eq('split_id', splitId)
+          .eq('user_id', memberId)
+
+        if (updateError) {
+           console.error('Webhook DB update error:', updateError)
+        } else {
+           console.log(`Payment confirmed: split=${splitId} member=${memberId}`)
+        }
       }
     }
 

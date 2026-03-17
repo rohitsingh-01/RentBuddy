@@ -93,25 +93,22 @@ All features work in **demo mode** without paid keys.
 | **Twilio** | SMS rent payment reminders |
 | **RentIts** | Item rentals + +40 bonus points per signup |
 | **Coinbase** | Crypto rent payments + webhook settlement |
-| **Netlify** | CI/CD hosting + preview URLs |
+| **Vercel** | CI/CD hosting + preview URLs |
 | **Okta** | University email student verification |
 | **GitHub Education** | Version control + Copilot |
 | **Mapbox** | Interactive housing + flatmate map |
 
 ---
 
-## Deploy to Netlify
+## Deploy to Vercel
 
 ```bash
-# Option 1 — connect GitHub repo at netlify.com (recommended)
-# Set env vars in Netlify dashboard → auto-deploys on every push
-
-# Option 2 — CLI
-npx netlify-cli deploy --prod
+# Connect GitHub repo at vercel.com (recommended)
+# Set env vars in Vercel dashboard → auto-deploys on every push
 ```
 
 After deploying, register the Coinbase webhook:
-`https://yourapp.netlify.app/api/payments/webhook`
+`https://your-app.vercel.app/api/payments/webhook`
 
 ---
 
