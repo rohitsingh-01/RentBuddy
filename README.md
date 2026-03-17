@@ -128,3 +128,4 @@ After deploying, register the Coinbase webhook:
 ---
 
 Built for HackRent 2026 · [hackrent.devfolio.co](https://hackrent.devfolio.co)
+
