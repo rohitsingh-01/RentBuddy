@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function formatSplit(split: any) {
+  if (!split) return null
+  return {
+    _id: split.id,
+    name: split.name,
+    currency: split.currency || 'INR',
+    totalExpenses: split.total_expenses || 0,
+    inviteCode: split.invite_code,
+    members: (split.members || []).map((m: any) => ({
+      user: m.user_id,
+      name: m.name,
+      email: m.email,
+      balance: m.balance || 0
+    })),
+    expenses: (split.expenses || []).map((e: any) => ({
+      _id: e.id,
+      title: e.title,
+      amount: e.amount,
+      paidBy: e.paid_by,
+      category: e.category,
+      date: e.date
+    }))
+  }
+}
+
 // GET /api/splits/[id]
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -20,7 +45,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 
     if (!split || splitError) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ split })
+    return NextResponse.json({ split: formatSplit(split) })
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
@@ -78,7 +103,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const newExpenses = [...expenses, insertedExp]
       const { totalExpenses, updatedMembers } = await updateBalancesAndTotal(newExpenses, members)
 
-      const responseSplit = { ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: newExpenses }
+      const responseSplit = formatSplit({ ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: newExpenses })
       return NextResponse.json({ split: responseSplit })
     }
 
@@ -88,7 +113,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const newExpenses = expenses.filter((e: any) => e.id !== body.expenseId)
       const { totalExpenses, updatedMembers } = await updateBalancesAndTotal(newExpenses, members)
 
-      const responseSplit = { ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: newExpenses }
+      const responseSplit = formatSplit({ ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: newExpenses })
       return NextResponse.json({ split: responseSplit })
     }
 
@@ -111,7 +136,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const newMembers = [...members, insertedMember]
       const { totalExpenses, updatedMembers } = await updateBalancesAndTotal(expenses, newMembers)
 
-      const responseSplit = { ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: expenses }
+      const responseSplit = formatSplit({ ...split, total_expenses: totalExpenses, members: updatedMembers, expenses: expenses })
       return NextResponse.json({ split: responseSplit })
     }
 

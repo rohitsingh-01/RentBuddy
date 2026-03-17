@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function formatSplit(split: any) {
+  if (!split) return null
+  return {
+    _id: split.id,
+    name: split.name,
+    currency: split.currency || 'INR',
+    totalExpenses: split.total_expenses || 0,
+    inviteCode: split.invite_code,
+    members: (split.members || []).map((m: any) => ({
+      user: m.user_id,
+      name: m.name,
+      email: m.email,
+      balance: m.balance || 0
+    })),
+    expenses: (split.expenses || []).map((e: any) => ({
+      _id: e.id,
+      title: e.title,
+      amount: e.amount,
+      paidBy: e.paid_by,
+      category: e.category,
+      date: e.date
+    }))
+  }
+}
+
 export async function GET() {
   try {
     const supabase = createClient()
@@ -42,7 +67,8 @@ export async function GET() {
 
     if (error) throw error
 
-    return NextResponse.json({ splits: splits || [] })
+    const formattedSplits = (splits || []).map(formatSplit)
+    return NextResponse.json({ splits: formattedSplits })
   } catch (error) {
     console.error('Splits GET error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
@@ -109,11 +135,11 @@ export async function POST(req: NextRequest) {
     if (membersError) throw membersError
 
     // Wrap for compatibility
-    const responseSplit = {
+    const responseSplit = formatSplit({
       ...split,
       members: membersToInsert,
       expenses: []
-    }
+    })
 
     return NextResponse.json({ split: responseSplit }, { status: 201 })
   } catch (error) {
