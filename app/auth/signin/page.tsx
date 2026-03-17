@@ -138,7 +138,10 @@ export default function SignInPage() {
           </Link>
 
           <h1 className="font-display text-3xl text-forest-900 mb-1">Welcome back</h1>
-          <p className="text-sm text-forest-500 mb-6">Sign in to continue to RentBuddy.</p>
+          <p className="text-sm text-forest-500 mb-2">Sign in to continue to RentBuddy.</p>
+          <div className="p-3 bg-forest-100 rounded-xl mb-6 text-sm text-forest-800 font-medium text-center">
+             💡 For Judges: Use <strong className="text-forest-950">demo@iitb.ac.in</strong> for testing!
+          </div>
 
           {/* ── DEV LOGIN (local only) ── */}
           {isDev && (

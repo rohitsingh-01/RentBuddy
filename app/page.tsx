@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useSession } from '@/components/layout/SupabaseAuthProvider'
 import { ArrowRight, Shield, Users, Calculator, FileSearch, Package } from 'lucide-react'
 
@@ -37,14 +38,24 @@ const features = [
   },
 ]
 
-const stats = [
-  { value: '2 min', label: 'average match time' },
-  { value: '100%', label: 'student-verified' },
-  { value: '₹0', label: 'platform fee' },
-]
+// Static stats deleted - Fetching dynamically inside HomePage loads setup framing.
 
 export default function HomePage() {
   const { data: session } = useSession()
+  const [liveStats, setLiveStats] = useState<any>(null)
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => setLiveStats(data))
+      .catch(console.error)
+  }, [])
+
+  const stats = [
+    { value: liveStats ? `${liveStats.users}` : '...', label: 'Registered users' },
+    { value: liveStats ? `${liveStats.responses}` : '...', label: 'Survey responses' },
+    { value: liveStats ? `${liveStats.listings}` : '...', label: 'Housing lists' },
+  ]
 
   return (
     <div className="min-h-screen">
@@ -86,40 +97,83 @@ export default function HomePage() {
         <div className="absolute bottom-0 left-20 w-64 h-64 bg-cream-200/80 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-6xl mx-auto relative">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 badge-green mb-6 px-3 py-1.5 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-forest-500 animate-pulse" />
-              Built for HackRent 2026 · Systems track
+          <div className="grid md:grid-cols-5 gap-12 items-center">
+            {/* Left Column: Text Content */}
+            <div className="md:col-span-3">
+              <div className="inline-flex items-center gap-2 badge-green mb-6 px-3 py-1.5 text-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-forest-500 animate-pulse" />
+                Built for HackRent 2026 · Systems track
+              </div>
+
+              <h1 className="font-display text-5xl md:text-7xl text-forest-900 leading-[1.05] mb-6">
+                Student housing,{' '}
+                <span className="italic text-forest-600">finally</span>{' '}
+                sorted.
+              </h1>
+
+              <p className="text-forest-600 text-lg md:text-xl leading-relaxed max-w-xl mb-10">
+                Find your ideal roommate, split rent without the spreadsheet drama,
+                scan your lease for red flags — and rent everything else from RentIts.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <Link href="/auth/signin" className="btn-primary text-base px-8 py-4">
+                  Get started <ArrowRight size={16} />
+                </Link>
+                <Link href="/demo" className="btn-secondary text-base px-8 py-4 bg-forest-50/50 backdrop-blur-sm border border-forest-200">
+                  See how it works <ArrowRight size={16} />
+                </Link>
+              </div>
+
+              {/* Stats */}
+              <div className="flex flex-wrap gap-8 mt-14 pt-10 border-t border-forest-100">
+                {stats.map((s) => (
+                  <div key={s.label}>
+                    <div className="font-display text-2xl text-forest-900">{s.value}</div>
+                    <div className="text-xs text-forest-500 mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <h1 className="font-display text-5xl md:text-7xl text-forest-900 leading-[1.05] mb-6">
-              Student housing,{' '}
-              <span className="italic text-forest-600">finally</span>{' '}
-              sorted.
-            </h1>
-
-            <p className="text-forest-600 text-lg md:text-xl leading-relaxed max-w-xl mb-10">
-              Find your ideal roommate, split rent without the spreadsheet drama,
-              scan your lease for red flags — and rent everything else from RentIts.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/auth/signin" className="btn-primary text-base px-8 py-4">
-                Get your free account <ArrowRight size={16} />
-              </Link>
-              <Link href="/rentals" className="btn-secondary text-base px-8 py-4">
-                Browse item rentals
-              </Link>
-            </div>
-
-            {/* Stats */}
-            <div className="flex flex-wrap gap-8 mt-14 pt-10 border-t border-forest-100">
-              {stats.map((s) => (
-                <div key={s.label}>
-                  <div className="font-display text-2xl text-forest-900">{s.value}</div>
-                  <div className="text-xs text-forest-500 mt-0.5">{s.label}</div>
+            {/* Right Column: Dashboard Mockup */}
+            <div className="md:col-span-2 hidden md:block relative">
+              <div className="aspect-[4/3] rounded-3xl bg-white/40 backdrop-blur-md border border-white/60 shadow-2xl shadow-forest-900/5 p-4 flex gap-3 transform hover:scale-[1.02] transition-transform duration-300">
+                {/* Mock Sidebar */}
+                <div className="w-14 rounded-2xl bg-forest-900 p-2 flex flex-col gap-2 items-center">
+                  <div className="w-8 h-8 rounded-xl bg-forest-700 mt-2" />
+                  <div className="w-6 h-6 rounded-lg bg-forest-800" />
+                  <div className="w-6 h-6 rounded-lg bg-cream-100/10" />
+                  <div className="w-6 h-6 rounded-lg bg-cream-100/10" />
+                  <div className="w-6 h-6 rounded-lg bg-cream-100/10 mt-auto mb-2" />
                 </div>
-              ))}
+                {/* Mock Content */}
+                <div className="flex-1 flex flex-col gap-3">
+                  <div className="h-4 w-24 bg-forest-200 rounded-md" />
+                  <div className="grid grid-cols-2 gap-2 flex-1">
+                    {/* card 1 */}
+                    <div className="bg-forest-50/80 rounded-2xl border border-forest-100/50 p-3 flex flex-col justify-between">
+                       <span className="text-xs font-semibold text-forest-600">Matches</span>
+                       <div className="h-8 flex -space-x-1.5 mt-2">
+                          <div className="w-7 h-7 rounded-full bg-forest-300 border-2 border-white" />
+                          <div className="w-7 h-7 rounded-full bg-cream-300 border-2 border-white" />
+                          <div className="w-7 h-7 rounded-full bg-coral-300 border-2 border-white" />
+                       </div>
+                    </div>
+                    {/* card 2 */}
+                    <div className="bg-coral-400/5 rounded-2xl border border-coral-200 p-3 flex flex-col justify-between">
+                       <span className="text-xs font-semibold text-coral-600">Unsettled</span>
+                       <span className="text-lg font-bold text-coral-700">₹4,200</span>
+                    </div>
+                    {/* card 3 */}
+                    <div className="col-span-2 bg-white rounded-2xl border border-forest-100/50 p-3 shadow-sm">
+                       <div className="h-3 w-32 bg-forest-200 rounded-md mb-2" />
+                       <div className="h-2 w-full bg-forest-100 rounded-full mb-1" />
+                       <div className="h-2 w-3/4 bg-forest-100 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -183,7 +237,7 @@ export default function HomePage() {
             Ready to find your place?
           </h2>
           <p className="text-forest-300 text-lg mb-8">
-            Join thousands of students already using RentBuddy to simplify their housing.
+            Simplify your student housing with AI matching, rent splitting, and lease analysis.
           </p>
           <Link href="/auth/signin" className="inline-flex items-center gap-2 bg-cream-100 text-forest-900 px-8 py-4 rounded-full font-medium hover:bg-white transition-colors duration-200">
             Create free account <ArrowRight size={16} />
@@ -200,7 +254,12 @@ export default function HomePage() {
             </div>
             <span className="text-sm font-display text-forest-300">RentBuddy</span>
           </div>
-          <p className="text-xs">Built for HackRent 2026 · Powered by RentIts, Meta, Twilio, Coinbase & MongoDB</p>
+          <p className="text-xs">Built for HackRent 2026 · Powered by RentIts, Meta, Twilio, Coinbase & Supabase Database</p>
+          <div className="flex items-center gap-4 text-xs font-medium">
+             <Link href="/demo" className="text-forest-400 hover:text-forest-200 transition-colors">Demo</Link>
+             <Link href="/research" className="text-forest-400 hover:text-forest-200 transition-colors">Research</Link>
+             <Link href="/pitch" className="text-forest-400 hover:text-forest-200 transition-colors">Pitch</Link>
+          </div>
         </div>
       </footer>
     </div>
